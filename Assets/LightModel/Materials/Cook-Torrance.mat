@@ -7,8 +7,8 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: Phong 3
-  m_Shader: {fileID: 4800000, guid: 475cff4e5491e25419d9676b1269fb50, type: 3}
+  m_Name: Cook-Torrance
+  m_Shader: {fileID: 4800000, guid: cd0ec481a5abb5b498df481e25ff18e6, type: 3}
   m_ShaderKeywords: 
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
@@ -18,9 +18,21 @@ Material:
   disabledShaderPasses: []
   m_SavedProperties:
     serializedVersion: 3
-    m_TexEnvs: []
+    m_TexEnvs:
+    - _Environment:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MainTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     m_Floats:
+    - _Fresnel: 1
     - _Gloss: 20
+    - _K: 1
+    - _Roughness: 1
     m_Colors:
+    - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _Diffuse: {r: 1, g: 1, b: 1, a: 1}
     - _Specular: {r: 1, g: 1, b: 1, a: 1}

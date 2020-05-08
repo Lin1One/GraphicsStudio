@@ -3,13 +3,13 @@
 
 Shader "GraphicsStudio/LightModel/PhysicallyBasedLighting" {
     Properties {
-        _Color ("Main Color", Color) = (1,1,1,1)
-        _MainTex ("Albedo", 2D) = "white" {}
-        _SpecularColor ("Specular Color", Color) = (1,1,1,1)
-        _SpecularPower("Specular Power", Range(0,1)) = 1
-        _SpecularRange("Specular Gloss", Range(1,40)) = 0
-        _Glossiness("Smoothness",Range(0,1)) = 1
-        _Metallic("Metallicness",Range(0,1)) = 0
+        _Color ("Main Color", Color) = (1,1,1,1)            //主颜色
+        _MainTex ("Albedo", 2D) = "white" {}                //反射率贴图
+        _SpecularColor ("Specular Color", Color) = (1,1,1,1)//高光颜色
+        _SpecularPower("Specular Power", Range(0,1)) = 1    //高光系数
+        _SpecularRange("Specular Gloss", Range(1,40)) = 0   //高光范围
+        _Glossiness("Smoothness",Range(0,1)) = 1            //光滑度（粗糙度 = 1-(_Glossiness * _Glossiness);）
+        _Metallic("Metallicness",Range(0,1)) = 0            //金属度
         _Anisotropic("Anisotropic", Range(-20,1)) = 0
         _Ior("Ior", Range(1,4)) = 1.5
         _UnityLightingContribution("Unity Reflection Contribution", Range(0,1)) = 1
@@ -59,14 +59,14 @@ SubShader {
             #pragma multi_compile _ENABLE_D_OFF _ENABLE_D_ON
             #pragma target 3.0
 
-            float4 _Color;
+            float4 _Color;              //主颜色
             sampler2D _MainTex;
             float4 _MainTex_ST;
             float4 _SpecularColor;
             float _SpecularPower;
             float _SpecularRange;
-            float _Glossiness;
-            float _Metallic;
+            float _Glossiness;          //光滑度（1- 粗糙度）
+            float _Metallic;            //金属度
             float _Anisotropic;
             float _Ior;
             float _NormalDistModel;
@@ -75,25 +75,26 @@ SubShader {
             float _UnityLightingContribution;
 
             struct VertexInput {
-                float4 vertex : POSITION; //local vertex position
-                float3 normal : NORMAL; //normal direction
-                float4 tangent : TANGENT; //tangent direction
-                float2 texcoord0 : TEXCOORD0; //uv coordinates
-                float2 texcoord1 : TEXCOORD1; //lightmap uv coordinates
+                float4 vertex : POSITION;       //模型顶点坐标
+                float3 normal : NORMAL;         //模型顶点法线
+                float4 tangent : TANGENT;       //模型顶点切线
+                float2 texcoord0 : TEXCOORD0;   //UV 坐标
+                float2 texcoord1 : TEXCOORD1;   //LightMap UV 坐标
             };
 
             struct VertexOutput {
-                float4 pos : SV_POSITION; //screen clip space position and depth
-                float2 uv0 : TEXCOORD0; //uv coordinates
-                float2 uv1 : TEXCOORD1; //lightmap uv coordinates
+                float4 pos : SV_POSITION;       //裁剪空间坐标
+                float2 uv0 : TEXCOORD0;         //UV 坐标
+                float2 uv1 : TEXCOORD1;         //lightmap uv 坐标
 
                 //below we create our own variables with the texcoord semantic.
-                float3 normalDir : TEXCOORD3; //normal direction
-                float3 posWorld : TEXCOORD4; //normal direction
-                float3 tangentDir : TEXCOORD5;
-                float3 bitangentDir : TEXCOORD6;
-                LIGHTING_COORDS(7,8) //this initializes the unity lighting and shadow
-                UNITY_FOG_COORDS(9) //this initializes the unity fog
+                //在寄存器存放自定义的变量
+                float3 normalDir : TEXCOORD3;   //法线
+                float3 posWorld : TEXCOORD4;    //世界坐标
+                float3 tangentDir : TEXCOORD5;  //切线
+                float3 bitangentDir : TEXCOORD6;//副切线
+                LIGHTING_COORDS(7,8)            //Unity 函数宏，在寄存器保存 unity 光照、shadow 变量
+                UNITY_FOG_COORDS(9)             //Unity 函数宏，在寄存器保存 fog 相关变量
             };
 
             VertexOutput vert (VertexInput v) {
@@ -148,19 +149,19 @@ SubShader {
             //---------------------------
             //helper functions
             float MixFunction(float i, float j, float x) {
-            return j * x + i * (1.0 - x);
+                return j * x + i * (1.0 - x);
             }
             float2 MixFunction(float2 i, float2 j, float x){
-            return j * x + i * (1.0h - x);
+                return j * x + i * (1.0h - x);
             }
             float3 MixFunction(float3 i, float3 j, float x){
-            return j * x + i * (1.0h - x);
+                return j * x + i * (1.0h - x);
             }
             float MixFunction(float4 i, float4 j, float x){
-            return j * x + i * (1.0h - x);
+                return j * x + i * (1.0h - x);
             }
             float sqr(float x){
-            return x*x;
+                return x*x;
             }
             //------------------------------
 
@@ -196,11 +197,11 @@ SubShader {
             //-----------------------------------------------
             //normal incidence reflection calculation
             float F0 (float NdotL, float NdotV, float LdotH, float roughness){
-            // Diffuse fresnel
-            float FresnelLight = SchlickFresnel(NdotL);
-            float FresnelView = SchlickFresnel(NdotV);
-            float FresnelDiffuse90 = 0.5 + 2.0 * LdotH*LdotH * roughness;
-            return MixFunction(1, FresnelDiffuse90, FresnelLight) * MixFunction(1, FresnelDiffuse90, FresnelView);
+                // Diffuse fresnel
+                float FresnelLight = SchlickFresnel(NdotL);
+                float FresnelView = SchlickFresnel(NdotV);
+                float FresnelDiffuse90 = 0.5 + 2.0 * LdotH*LdotH * roughness;
+                return MixFunction(1, FresnelDiffuse90, FresnelLight) * MixFunction(1, FresnelDiffuse90, FresnelView);
             }
 
             //-----------------------------------------------
@@ -208,39 +209,57 @@ SubShader {
             //-----------------------------------------------
             //Normal Distribution Functions
 
+            // Blinn-Phong NDF
+            // Blin 近似算出了Phong高光，并将其作为 Phong 高光模型的优化版。
+            // Blin 通过半角向量与法向量点乘显然比计算光的反射方向要快。
+            // 这个算法算出来的结果要比Phong更加柔和。
             float BlinnPhongNormalDistribution(float NdotH, float specularpower, float speculargloss){
-            float Distribution = pow(NdotH,speculargloss) * specularpower;
-            Distribution *= (2+specularpower) / (2*3.1415926535);
-            return Distribution;
-            }
-            float PhongNormalDistribution(float RdotV, float specularpower, float speculargloss){
-            float Distribution = pow(RdotV,speculargloss) * specularpower;
-            Distribution *= (2+specularpower) / (2*3.1415926535);
-            return Distribution;
+                float Distribution = pow(NdotH,speculargloss) * specularpower;
+                Distribution *= (2 + specularpower) / (2*3.1415926535);
+                return Distribution;
             }
 
+            // Phong NDF
+            // 产生比Blin近似出更好的效果
+            float PhongNormalDistribution(float RdotV, float specularpower, float speculargloss){
+                float Distribution = pow(RdotV,speculargloss) * specularpower;
+                Distribution *= (2+specularpower) / (2*3.1415926535);
+                return Distribution;
+            }
+
+            // Beckman NDF
+            // 粗糙度和法线与半角向量的点乘共同对物体表面的法线分布进行近似。
+            // 在 Beckman 光照模型处理物体表面的时候需要注意一点:Beckman光照模型随着光滑度的变化在慢慢变化，直到一个高光点聚拢在了一个确定的点上。
+            // 当表面的光滑度 1 - roughness 增加的时候反射高光聚拢在了一起，
+            // 产生了非常不错的从粗糙到光滑的艺术效果。
+            // 这种表现效果在早期的粗糙材质中非常受欢迎，对于塑料中光滑度的渲染也非常不错。
             float BeckmannNormalDistribution(float roughness, float NdotH)
             {
-            float roughnessSqr = roughness*roughness;
-            float NdotHSqr = NdotH*NdotH;
-            return max(0.000001,(1.0 / (3.1415926535*roughnessSqr*NdotHSqr*NdotHSqr))* exp((NdotHSqr-1)/(roughnessSqr*NdotHSqr)));
+                float roughnessSqr = roughness*roughness;
+                float NdotHSqr = NdotH*NdotH;
+                return max(0.000001,(1.0 / (3.1415926535*roughnessSqr*NdotHSqr*NdotHSqr))* exp((NdotHSqr-1)/(roughnessSqr*NdotHSqr)));
             }
 
+            // Gaussian NDF
+            // 依赖于粗糙度以及表面法线与半角向量的点乘
             float GaussianNormalDistribution(float roughness, float NdotH)
             {
-            float roughnessSqr = roughness*roughness;
-            float thetaH = acos(NdotH);
-            return exp(-thetaH*thetaH/roughnessSqr);
+                float roughnessSqr = roughness*roughness;
+                float thetaH = acos(NdotH);
+                return exp(-thetaH*thetaH/roughnessSqr);
             }
 
+            // GGX NDF
+            // GGX是最受欢迎的光照模型之一，当前大多数的BRDF函数都依赖于它的实现。
+            // GGX是由Bruce Walter和Kenneth Torrance发表出来的。
+            // 在[论文](https://www.cs.cornell.edu/~srm/publications/EGSR07-btdf.pdf)中的许多算法都是目前大量被使用到的。
             float GGXNormalDistribution(float roughness, float NdotH)
             {
-            float roughnessSqr = roughness*roughness;
-            float NdotHSqr = NdotH*NdotH;
-            float TanNdotHSqr = (1-NdotHSqr)/NdotHSqr;
-            return (1.0/3.1415926535) * sqr(roughness/(NdotHSqr * (roughnessSqr + TanNdotHSqr)));
-            // float denom = NdotHSqr * (roughnessSqr-1)
-
+                float roughnessSqr = roughness*roughness;
+                float NdotHSqr = NdotH*NdotH;
+                float TanNdotHSqr = (1-NdotHSqr)/NdotHSqr;
+                return (1.0/3.1415926535) * sqr(roughness/(NdotHSqr * (roughnessSqr + TanNdotHSqr)));
+                // float denom = NdotHSqr * (roughnessSqr-1)
             }
 
             float TrowbridgeReitzNormalDistribution(float NdotH, float roughness){
@@ -387,47 +406,56 @@ SubShader {
             //--------------------------
 
             float4 frag(VertexOutput i) : COLOR {
-                //normal direction calculations
-                float3 normalDirection = normalize(i.normalDir);
-                float3 viewDirection = normalize(_WorldSpaceCameraPos.xyz - i.posWorld.xyz);
-                float shiftAmount = dot(i.normalDir, viewDirection);
+                float3 normalDirection = normalize(i.normalDir);        //法线，顶点法线在插值后需重新 normalize
+                float3 viewDirection = normalize(_WorldSpaceCameraPos.xyz - i.posWorld.xyz);    //视点方向
+                //法线修正
+                float shiftAmount = dot(i.normalDir, viewDirection);    //视点方向与顶点法线夹角Cos
                 normalDirection = shiftAmount < 0.0f ? normalDirection + viewDirection * (-shiftAmount + 1e-5f) : normalDirection;
 
-                //light calculations
+                //光照参数
                 float3 lightDirection = normalize(lerp(_WorldSpaceLightPos0.xyz, _WorldSpaceLightPos0.xyz - i.posWorld.xyz,_WorldSpaceLightPos0.w));
-                float3 lightReflectDirection = reflect( -lightDirection, normalDirection );
+                float3 lightReflectDirection = reflect(-lightDirection, normalDirection );
                 float3 viewReflectDirection = normalize(reflect( -viewDirection, normalDirection ));
-                float NdotL = max(0.0, dot( normalDirection, lightDirection ));
-                float3 halfDirection = normalize(viewDirection+lightDirection);
+                float NdotL = max(0.0, dot(normalDirection, lightDirection ));      //法线，入射光夹角
+                float3 halfDirection = normalize(viewDirection + lightDirection);   //半角量
                 float NdotH = max(0.0,dot( normalDirection, halfDirection));
                 float NdotV = max(0.0,dot( normalDirection, viewDirection));
                 float VdotH = max(0.0,dot( viewDirection, halfDirection));
                 float LdotH = max(0.0,dot(lightDirection, halfDirection));
                 float LdotV = max(0.0,dot(lightDirection, viewDirection));
                 float RdotV = max(0.0, dot( lightReflectDirection, viewDirection ));
-                float attenuation = LIGHT_ATTENUATION(i);
+                float attenuation = LIGHT_ATTENUATION(i);           //Unity函数宏：计算光照衰减量
                 float3 attenColor = attenuation * _LightColor0.rgb;
 
                 //get Unity Scene lighting data
-                UnityGI gi = GetUnityGI(_LightColor0.rgb, lightDirection, normalDirection, viewDirection, viewReflectDirection, attenuation, 1- _Glossiness, i.posWorld.xyz);
-                float3 indirectDiffuse = gi.indirect.diffuse.rgb ;
-                float3 indirectSpecular = gi.indirect.specular.rgb;
+                //场景光照数据
+                UnityGI gi = GetUnityGI(
+                    _LightColor0.rgb, 
+                    lightDirection, 
+                    normalDirection, 
+                    viewDirection, 
+                    viewReflectDirection, 
+                    attenuation, 
+                    1- _Glossiness, 
+                    i.posWorld.xyz);
+                float3 indirectDiffuse = gi.indirect.diffuse.rgb ;  //间接光漫反射
+                float3 indirectSpecular = gi.indirect.specular.rgb; //间接光镜面发射
 
-                //diffuse color calculations
+                //漫反射计算
+                float3 diffuseColor = tex2D(_MainTex, i.uv0).rgb *_Color.rgb * (1.0 - _Metallic);   //漫反射颜色（金属度为1，不发生漫反射）
                 float roughness = 1-(_Glossiness * _Glossiness);
                 roughness = roughness * roughness;
-                float3 diffuseColor = tex2D(_MainTex, i.uv0).rgb *_Color.rgb * (1.0 - _Metallic) ;
-                float f0 = F0(NdotL, NdotV, LdotH, roughness);
+                float f0 = F0(NdotL, NdotV, LdotH, roughness);      //计算菲涅尔漫反射系数
                 diffuseColor *= f0;
-                diffuseColor+=indirectDiffuse;
+                diffuseColor += indirectDiffuse;                    //加上间接光漫反射
 
-                //Specular calculations
-                float3 specColor = lerp(_SpecularColor.rgb, _Color.rgb, _Metallic * 0.5);
-                float3 SpecularDistribution = specColor;
-                float GeometricShadow = 1;
-                float3 FresnelFunction = specColor;
+                //镜面发射计算
+                float3 specColor = lerp(_SpecularColor.rgb, _Color.rgb, _Metallic * 0.5);  //高光反射颜色
+                float3 SpecularDistribution = specColor;            //镜面反射法线分布项 D
+                float GeometricShadow = 1;                          //几何阴影项 G
+                float3 FresnelFunction = specColor;                 //菲涅尔项  F
 
-                //Normal Distribution Function/Specular Distribution-----------------------------------------------------
+                //选择法线分布函数 NDF -----------------------------------------------------
                 #ifdef _NORMALDISTMODEL_BLINNPHONG
                 SpecularDistribution *= BlinnPhongNormalDistribution(NdotH, _Glossiness, max(1,_Glossiness * 40));
                 #elif _NORMALDISTMODEL_PHONG
@@ -448,7 +476,7 @@ SubShader {
                 SpecularDistribution *= GGXNormalDistribution(roughness, NdotH);
                 #endif
 
-                //Geometric Shadowing term----------------------------------------------------------------------------------
+                //选择几何阴影函数 ----------------------------------------------------------------------------------
                 #ifdef _SMITHGEOSHADOWMODEL_NONE
                 #ifdef _GEOSHADOWMODEL_ASHIKHMINSHIRLEY
                 GeometricShadow *= AshikhminShirleyGeometricShadowingFunction (NdotL, NdotV, LdotH);
