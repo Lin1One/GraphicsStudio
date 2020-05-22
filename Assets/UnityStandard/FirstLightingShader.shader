@@ -38,8 +38,10 @@ Shader "GraphicsStudio/UnityStandard/FirstLightingShader" {
 			#pragma target 3.0
 
 			#include "UnityCG.cginc"
-			#include "UnityStandardBRDF.cginc"
-			#include "UnityStandardUtils.cginc"
+			// #include "UnityStandardBRDF.cginc"
+			// #include "UnityStandardUtils.cginc"
+			#include "UnityPBSLighting.cginc"
+			//#include "Cginc/LightingCgInc.cginc"
 
 			#pragma vertex MyVertexProgram
 			#pragma fragment MyFragmentProgram
@@ -96,7 +98,7 @@ Shader "GraphicsStudio/UnityStandard/FirstLightingShader" {
 				//在顶点程序中产生正确的法线之后，正确的法线值会通过内插值器。
 				//在不同单位长度的向量之间进行线性内插不会生成另外一个单位长度的向量。它会比单位长度的向量要小一些。
 				//片段着色器中再次对法线进行归一化。
-				i.normal = normalize(i.normal);
+				//i.normal = normalize(i.normal);
 				
 				//return float4(i.normal * 0.5 + 0.5,1);
 				//计算表面法线向量和光的入射方向的点积来确定这个兰伯特反射系数
@@ -120,12 +122,12 @@ Shader "GraphicsStudio/UnityStandard/FirstLightingShader" {
 				//其中包含了当前光源的位置。或者在定向光的情况下光线来自的方向。
 				//在这产生正确的结果之前，我们必须告诉Unity我们要使用哪个光源的数据。 
 				//我们可以通过添加一个LightMode 标签到我们的着色器进行这个Pass。
-				float3 lightDir = _WorldSpaceLightPos0.xyz;
+				//float3 lightDir = _WorldSpaceLightPos0.xyz;
 				//return DotClamped(lightDir, i.normal);
 
 				//每个光源都有自己的颜色，可以通过 fixed L_LightColor0 变量获得光源的颜色
 				//光源的颜色是在UnityLightingCommon之中进行定义的。
-				float3 lightColor = _LightColor0.rgb;
+				//float3 lightColor = _LightColor0.rgb;
 				//float3 diffuse = lightColor * DotClamped(lightDir, i.normal);
 
 				//使用材质的纹理和色调来定义材质的反射率
@@ -136,7 +138,7 @@ Shader "GraphicsStudio/UnityStandard/FirstLightingShader" {
 				//----镜面反射-----
 				//Blinn 反射模型来计算光的反射。
 				//通过float3 _WorldSpaceCameraPos来访问摄像机的位置，这在UnityShaderVariables中进行定义。
-				float3 viewDir = normalize(_WorldSpaceCameraPos - i.worldPos);
+				//float3 viewDir = normalize(_WorldSpaceCameraPos - i.worldPos);
 
 				//要知道反射的光在哪里，我们可以使用标准 reflect 函数。要获取入射光线的方向并基于表面法线对它进行反射。所以我们必须对我们的光的入射方向取反。
 				//float3 reflectionDir = reflect(-lightDir, i.normal);
@@ -155,7 +157,7 @@ Shader "GraphicsStudio/UnityStandard/FirstLightingShader" {
 				//一个很大的限制是，它可以为从后面照亮的物体产生无效的高光。
 				//光滑度值为0.01的情况下，得到的不正确的高光结果。
 				//可以通过使用阴影或是通过基于光的入射方向来淡出镜面高光来进行隐藏。
-				float3 halfVector = normalize(lightDir + viewDir);
+				//float3 halfVector = normalize(lightDir + viewDir);
 				// return pow(DotClamped(halfVector, i.normal),_Smoothness * 100);
 
 				//float3 halfVector = normalize(lightDir + viewDir);
@@ -175,8 +177,12 @@ Shader "GraphicsStudio/UnityStandard/FirstLightingShader" {
 				//能量守恒
 				//只是添加漫反射和镜面高光反射的结果在一起的话，得到的反射结果可以比光源的入射光更亮。
 				//必须确保材质的漫反射和镜面高光反射部分的总和不超过1
-				float3 albedo = tex2D(_MainTex, i.uv).rgb * _Color.rgb;
+				//float3 albedo = tex2D(_MainTex, i.uv).rgb * _Color.rgb;
 				// albedo *= 1 - _SpecularTint.rgb;
+
+				// 镜面高光的工作流：
+				// 可以通过使用强烈的镜面高光色调来创建金属。
+				// 通过使用比较弱的单色镜面高光来创建介电材料。
 
 				//单色的能量守恒。
 				//albedo *= 1 - max(_SpecularTint.r, max(_SpecularTint.g, _SpecularTint.b));
@@ -184,10 +190,10 @@ Shader "GraphicsStudio/UnityStandard/FirstLightingShader" {
 				//在UnityStandardUtils之中进行定义 EnergyConservationBetweenDiffuseAndSpecular 函数
 				//这个函数使用反射率和镜面高光颜色作为输入，并输出调整后的反射率。
 				//第三个输出参数，称为“1-反射率”。
+				//有三种模式，不进行能量守恒、单色能量守恒或是彩色能量守恒。
+				//这些模型是由#define语句控制的。默认为单色能量守恒。
 
-				// 镜面高光的工作流：
-				// 	可以通过使用强烈的镜面高光色调来创建金属。
-				// 	通过使用比较弱的单色镜面高光来创建介电材料。
+
 				// float3 albedo = tex2D(_MainTex, i.uv).rgb * _Tint.rgb;
 				// float oneMinusReflectivity;
 				// albedo = EnergyConservationBetweenDiffuseAndSpecular(albedo,
@@ -195,8 +201,8 @@ Shader "GraphicsStudio/UnityStandard/FirstLightingShader" {
 
 
 				// 金属的工作流程：
-				// 	金属没有反射率，我们可以使用它的基础颜色作为镜面高光色调的颜色数据。
-				// 	非金属没有一个彩色的镜面高光，所以我们不需要一个单独的镜面高光色调。
+				// 金属没有反射率，我们可以使用它的基础颜色作为镜面高光色调的颜色数据。
+				// 非金属没有一个彩色的镜面高光，所以我们不需要一个单独的镜面高光色调。
 				// float3 specularTint = albedo * _Metallic;
 				// float oneMinusReflectivity = 1 - _Metallic;
 				// albedo *= oneMinusReflectivity;
@@ -205,16 +211,95 @@ Shader "GraphicsStudio/UnityStandard/FirstLightingShader" {
 				//因此，镜面高光反射强度和反射值与金属滑块的值不是完全匹配的。
 				//同时这也会受到颜色空间的影响。
 				// UnityStandardUtils 有 DiffuseAndSpecularFromMetallic 函数，它为我们处理这个问题。
-				float3 specularTint; 
-				float oneMinusReflectivity;
-				albedo = DiffuseAndSpecularFromMetallic(albedo, _Metallic, 
-					specularTint, oneMinusReflectivity);
+				// float3 specularTint; 
+				// float oneMinusReflectivity;
+				// albedo = DiffuseAndSpecularFromMetallic(albedo, _Metallic, 
+				// 	specularTint, oneMinusReflectivity);
 
-				float3 diffuse = albedo * lightColor * DotClamped(lightDir, i.normal);
-				//float3 halfVector = normalize(lightDir + viewDir);
-				float3 specular = specularTint * lightColor * pow(DotClamped(halfVector, i.normal),
-					_Smoothness * 100);
-				return float4(diffuse + specular,1);
+				// float3 diffuse = albedo * lightColor * DotClamped(lightDir, i.normal);
+				// //float3 halfVector = normalize(lightDir + viewDir);
+				// float3 specular = specularTint * lightColor * pow(DotClamped(halfVector, i.normal),
+				// 	_Smoothness * 100);
+				// return float4(diffuse + specular,1);
+
+				//基于物理的渲染
+				//算法可以通过UNITY_BRDF_PBS宏进行访问
+				//这个宏在UnityPBSLighting中进行定义。而 BRDF 代表的是双向反射分布函数。
+
+				// Default BRDF to use:
+				// #if !defined (UNITY_BRDF_PBS)
+				// 	// allow to explicitly override BRDF in custom shader
+				// 	// still add safe net for low shader models,
+				// 	// otherwise we might end up with shaders failing to compile
+				// 	#if SHADER_TARGET < 30
+				// 		#define UNITY_BRDF_PBS BRDF3_Unity_PBS
+				// 	#elif UNITY_PBS_USE_BRDF3
+				// 		#define UNITY_BRDF_PBS BRDF3_Unity_PBS
+				// 	#elif UNITY_PBS_USE_BRDF2
+				// 		#define UNITY_BRDF_PBS BRDF2_Unity_PBS
+				// 	#elif UNITY_PBS_USE_BRDF1
+				// 		#define UNITY_BRDF_PBS BRDF1_Unity_PBS
+				// 	#elif defined(SHADER_TARGET_SURFACE_ANALYSIS)
+				// 		// we do preprocess pass during shader analysis and we dont
+				// 		// actually care about brdf as we need only inputs/outputs
+				// 		#define UNITY_BRDF_PBS BRDF1_Unity_PBS
+				// 	#else
+				// 		#error something broke in auto-choosing BRDF
+				// 	#endif
+				// #endif
+
+				//每个函数有 8 个参数。
+				//return UNITY_BRDF_PBS();
+
+				//前两个参数是材质的漫反射和镜面高光颜色。我们已经有了这两个参数。
+				//return UNITY_BRDF_PBS(albedo, specularTint);
+
+				//接下来的两个参数必须是反射率 reflectivity  和粗糙度。
+				//这些参数必须使用的是一减去某个值的形式，这是一个优化。
+				//从DiffuseAndSpecularFromMetallic中获得了一个MinusReflectivity。 
+				//平滑度与粗糙度相反
+				//return UNITY_BRDF_PBS(albedo, specularTint, 
+				//	oneMinusReflectivity ,  _Smoothness);
+
+				//表面法线方向和视线方向。
+				//return UNITY_BRDF_PBS(albedo, specularTint,
+				// 	oneMinusReflectivity, _Smoothness,
+				// 	i.normal, viewDir);
+
+				//最后两个参数是直接光和间接光。
+				// UnityLightingCommon定义了Unity着色器用来传递光数据的简单 UnityLight 结构。
+				// 包含了光的颜色、光的方向和 ndotl 值，这是漫反射术语。
+				// 把它放在一个光数据的结构里面，并把它作为第七个参数。
+				// UnityLight light;
+				// light.color = lightColor;
+				// light.dir = lightDir;
+				// light.ndotl = DotClamped(i.normal, lightDir);
+
+				// 间接光。使用UnityIndirect结构，在UnityLightingCommon中定义的。
+				// 它包含两种颜色，一种是漫反射，另一种是镜面高光反射。
+				// 漫反射颜色表示的环境光
+				// 镜面高光反射颜色表示的是环境反射光
+				i.normal = normalize(i.normal);
+				float3 lightDir = _WorldSpaceLightPos0.xyz;
+				float3 viewDir = normalize(_WorldSpaceCameraPos - i.worldPos);
+				float3 lightColor = _LightColor0.rgb;
+				float3 albedo = tex2D(_MainTex, i.uv).rgb * _Color.rgb;
+				//float3 specularTint;
+				float oneMinusReflectivity;
+				albedo = DiffuseAndSpecularFromMetallic(
+					albedo, _Metallic, _SpecularTint.rgb, oneMinusReflectivity);
+				UnityLight light;
+				light.color = lightColor;
+				light.dir = lightDir;
+				light.ndotl = DotClamped(i.normal, lightDir);
+				UnityIndirect indirectLight;
+				indirectLight.diffuse = 0;
+				indirectLight.specular = 0;
+					
+				return UNITY_BRDF_PBS(albedo, _SpecularTint.rgb,
+					oneMinusReflectivity,_Smoothness,
+					i.normal, viewDir,
+					light,indirectLight);
 			}
 
 			ENDCG
